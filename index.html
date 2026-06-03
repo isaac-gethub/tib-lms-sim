@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KABO Ironbridge Simulation — Training Toolkit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root {
+    --navy:#1F3864; --teal:#1F7A8C; --amber:#C65911;
+    --white:#FFFFFF; --light:#EBF2F7; --muted:#6B7A8F;
+    --red:#C00000; --green:#2E5C8A; --bg:#F0F4F8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:#1A2332;min-height:100vh;}
+
+  /* ── Login ── */
+  #login-screen{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy) 0%,#0d2144 100%);
+    display:flex;align-items:center;justify-content:center;z-index:1000;}
+  .login-card{background:white;border-radius:20px;padding:40px;width:100%;max-width:420px;box-shadow:0 30px 80px rgba(0,0,0,0.4);}
+  .login-logo{text-align:center;margin-bottom:28px;}
+  .login-logo h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:900;color:var(--navy);}
+  .login-logo h1 span{color:var(--amber);}
+  .login-logo p{font-size:12px;color:var(--muted);margin-top:4px;}
+  .login-form label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px;}
+  .login-form input{width:100%;padding:12px 16px;border:2px solid #E2EAF0;border-radius:10px;font-size:15px;outline:none;margin-bottom:16px;}
+  .login-form input:focus{border-color:var(--teal);}
+  .login-btn{width:100%;padding:14px;background:var(--navy);color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s;}
+  .login-btn:hover{background:var(--teal);}
+  .login-btn:disabled{opacity:0.6;cursor:not-allowed;}
+  .login-err{background:#FDECEA;color:var(--red);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:none;font-weight:500;}
+  .login-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px;justify-content:center;}
+  .login-badge{background:var(--light);color:var(--navy);font-size:10px;padding:4px 10px;border-radius:10px;font-weight:600;}
+
+  /* ── Topbar ── */
+  #topbar{display:none;position:fixed;top:0;left:0;right:0;height:56px;background:var(--navy);
+    align-items:center;padding:0 24px;gap:16px;z-index:100;border-bottom:2px solid var(--teal);}
+  .tb-logo{font-family:'Playfair Display',serif;font-size:18px;color:white;font-weight:900;}
+  .tb-logo span{color:var(--amber);}
+  .tb-badge{background:var(--amber);color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;}
+  .tb-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+  .tb-user{display:flex;align-items:center;gap:8px;}
+  .tb-avatar{width:32px;height:32px;border-radius:50%;background:var(--teal);color:white;
+    font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+  .tb-name{font-size:13px;color:rgba(255,255,255,0.85);font-weight:500;}
+  .tb-logout{background:transparent;border:1px solid rgba(255,255,255,0.3);color:rgba(255,255,255,0.7);
+    padding:5px 12px;border-radius:8px;font-size:12px;cursor:pointer;}
+  .tb-logout:hover{background:rgba(255,255,255,0.1);}
+
+  /* ── Main ── */
+  #main{display:none;padding-top:56px;min-height:100vh;}
+  .hero{background:var(--navy);color:white;padding:48px 32px;text-align:center;}
+  .hero h2{font-family:'Playfair Display',serif;font-size:32px;margin-bottom:12px;}
+  .hero p{font-size:16px;color:rgba(255,255,255,0.75);max-width:600px;margin:0 auto;}
+  .hero-badges{display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap;}
+  .hero-badge{background:rgba(255,255,255,0.15);color:white;font-size:12px;font-weight:600;padding:6px 16px;border-radius:20px;}
+
+  /* ── Modules ── */
+  .modules{max-width:960px;margin:40px auto;padding:0 24px;display:grid;gap:24px;}
+  .module-card{background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.08);}
+  .module-header{padding:24px 28px;display:flex;align-items:center;gap:16px;cursor:pointer;}
+  .module-header:hover{opacity:0.9;}
+  .mod-num{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+    font-size:22px;font-weight:900;color:white;flex-shrink:0;}
+  .mod-info h3{font-size:18px;font-weight:700;color:var(--navy);}
+  .mod-info p{font-size:14px;color:var(--muted);margin-top:4px;}
+  .mod-count{margin-left:auto;font-size:13px;font-weight:600;color:var(--teal);background:var(--light);padding:6px 14px;border-radius:20px;}
+  .module-body{padding:0 28px 24px;border-top:1px solid #EEF2F6;display:none;}
+  .module-body.open{display:block;}
+  .mod-desc{font-size:14px;color:#4A5568;line-height:1.7;padding:20px 0 16px;}
+
+  /* Resource items */
+  .resource-list{display:grid;gap:10px;}
+  .resource-item{background:var(--light);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;}
+  .res-info h4{font-size:14px;font-weight:600;color:var(--navy);}
+  .res-info p{font-size:12px;color:var(--muted);margin-top:2px;}
+  .res-btn{background:var(--navy);color:white;border:none;padding:8px 18px;border-radius:8px;
+    font-size:13px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-block;}
+  .res-btn:hover{background:var(--teal);}
+  .res-btn.amber{background:var(--amber);}
+  .res-btn.amber:hover{background:#a0470d;}
+
+  /* ── Footer ── */
+  footer{text-align:center;padding:32px;color:var(--muted);font-size:13px;border-top:1px solid #E2EAF0;margin-top:40px;}
+
+
+  /* ── SCROLLBAR STYLING ── */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #D0D8E4; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb { background: #4A6080; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #1F3864; }
+  * { scrollbar-width: thin; scrollbar-color: #4A6080 #D0D8E4; }
+
+
+  /* ── REGISTER FLOW ── */
+
+  .auth-panel { display:none; }
+  .auth-panel.active { display:block; }
+  .reg-err{background:#FDECEA;color:var(--red);border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:none;font-weight:500;}
+  .pw-strength{height:4px;border-radius:2px;margin-top:-10px;margin-bottom:14px;background:#E2EAF0;overflow:hidden;}
+  .pw-strength-bar{height:100%;border-radius:2px;width:0;transition:all 0.3s;}
+  .register-success{text-align:center;padding:20px 10px;}
+  .register-success .rs-icon{font-size:48px;margin-bottom:12px;}
+  .register-success h3{font-size:17px;font-weight:700;color:var(--navy);margin-bottom:8px;}
+  .register-success p{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:6px;}
+  .register-success .rs-note{background:var(--light);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--navy);font-weight:500;margin-top:14px;line-height:1.6;}
+
+  .auth-tabs { display:flex; gap:0; margin-bottom:24px; border-radius:10px; overflow:hidden; border:1.5px solid var(--border); }
+  .auth-tab { flex:1; padding:10px; text-align:center; font-size:13px; font-weight:600; cursor:pointer; background:var(--light); color:var(--muted); transition:all 0.2s; border:none; font-family:'DM Sans',sans-serif; }
+  .auth-tab.active { background:var(--navy); color:var(--white); }
+  .auth-tab:first-child { border-radius:8px 0 0 8px; }
+  .auth-tab:last-child  { border-radius:0 8px 8px 0; }
+  .auth-panel { display:none; }
+  .auth-panel.active { display:block; }
+  .register-success {
+    text-align:center; padding:20px 10px;
+  }
+  .register-success .rs-icon { font-size:48px; margin-bottom:12px; }
+  .register-success h3 { font-size:17px; font-weight:700; color:var(--navy); margin-bottom:8px; }
+  .register-success p { font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:6px; }
+  .register-success .rs-note { background:var(--light); border-radius:8px; padding:12px 14px; font-size:12px; color:var(--navy); font-weight:500; margin-top:14px; line-height:1.6; }
+  .pw-strength { height:4px; border-radius:2px; margin-top:-10px; margin-bottom:14px; background:var(--border); overflow:hidden; }
+  .pw-strength-bar { height:100%; border-radius:2px; width:0; transition:all 0.3s; }
+  .reg-err { background:var(--ltred); color:var(--red); border-radius:8px; padding:10px 14px; font-size:13px; margin-bottom:14px; display:none; font-weight:500; }
+
+  /* ── IP PROTECTION ── */
+  body {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+  }
+  #wm-overlay {
+    position: fixed; top:0; left:0; right:0; bottom:0;
+    pointer-events:none; z-index:9999; overflow:hidden;
+  }
+  .wm-tile {
+    position:absolute; font-size:13px; font-weight:600;
+    color:rgba(31,56,100,0.10); white-space:nowrap;
+    transform:rotate(-35deg); font-family:monospace; letter-spacing:0.5px;
+  }
+
+</style>
+</head>
+<body>
+<div id="wm-overlay"></div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <h1>KABO <span>Training</span></h1>
+      <p>Ironbridge Capital Group — Simulation Toolkit</p>
+    </div>
+
+    <!-- Auth Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchTab('register')">New Student</button>
+    </div>
+
+    <!-- LOGIN PANEL -->
+    <div id="panel-login" class="auth-panel active">
+      <div id="login-err" class="login-err">Invalid email or password.</div>
+      <div class="login-form">
+        <label>Email</label>
+        <input type="email" id="email-in" placeholder="you@email.com" autocomplete="email">
+        <label>Password</label>
+        <input type="password" id="pass-in" placeholder="••••••••" autocomplete="current-password">
+        <button class="login-btn" onclick="doLogin()">Access Simulation Toolkit</button>
+      </div>
+    </div>
+
+    <!-- REGISTER PANEL -->
+    <div id="panel-register" class="auth-panel">
+      <div id="reg-err" class="reg-err">Registration failed. Please try again.</div>
+      <div id="reg-form">
+        <div class="login-form">
+          <label>Email Address</label>
+          <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email">
+          <label>Password</label>
+          <input type="password" id="reg-pass" placeholder="Minimum 8 characters" autocomplete="new-password" oninput="checkPwStrength(this.value)">
+          <div class="pw-strength"><div class="pw-strength-bar" id="pw-bar"></div></div>
+          <label>Confirm Password</label>
+          <input type="password" id="reg-pass2" placeholder="Repeat your password" autocomplete="new-password">
+          <button class="login-btn" onclick="doRegister()" id="reg-btn">Create Account</button>
+        </div>
+      </div>
+      <div id="reg-success" class="register-success" style="display:none">
+        <div class="rs-icon">✅</div>
+        <h3>Account Created</h3>
+        <p>Your account has been created successfully.</p>
+        <p>Your simulation access will be activated by the Kabo team within <strong>2 hours</strong>.</p>
+        <div class="rs-note">
+          📧 Check your email for a confirmation link.<br>
+          Once your access is activated, return here and sign in using the <strong>Sign In</strong> tab.<br><br>
+          Questions? Email <strong>academy@kabo-solutions.com</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="login-badges">
+      <span class="login-badge">Finding Calibration Bank</span>
+      <span class="login-badge">Walkthrough Scripts</span>
+      <span class="login-badge">Ironbridge Case Study</span>
+    </div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <span class="tb-logo">KABO <span>Simulation</span></span>
+  <span class="tb-badge">IRONBRIDGE</span>
+  <div class="tb-right">
+    <div class="tb-user">
+      <div class="tb-avatar" id="user-avatar">??</div>
+      <span class="tb-name" id="user-name">Student</span>
+    </div>
+    <button class="tb-logout" onclick="doLogout()">Sign Out</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="hero">
+    <h2>Ironbridge Capital Group plc</h2>
+    <p>Your complete 30-day engagement simulation. Three modules — calibration, walkthrough practice, and the full case study. Complete all three before your first live client.</p>
+    <div class="hero-badges">
+      <span class="hero-badge">50 Finding Scenarios</span>
+      <span class="hero-badge">4 Character Scripts</span>
+      <span class="hero-badge">15 Pre-Planted Findings</span>
+      <span class="hero-badge">17 Required Deliverables</span>
+    </div>
+  </div>
+
+  <div class="modules">
+    <!-- MODULE 1 -->
+    <div class="module-card">
+      <div class="module-header" onclick="toggleModule('m1')">
+        <div class="mod-num" style="background:var(--navy);">01</div>
+        <div class="mod-info">
+          <h3>Finding Calibration Bank</h3>
+          <p>50 real-world finding scenarios — rate each independently before checking the answer bank</p>
+        </div>
+        <span class="mod-count">50 Scenarios</span>
+      </div>
+      <div class="module-body" id="m1">
+        <p class="mod-desc">The Finding Calibration Bank is the fastest tool for building finding judgment. Each scenario has five layers: your independent rating, the correct rating, the most common trainee error, the correct rationale, and adequate vs inadequate management response examples. Includes High, Medium, Low, Not-a-Finding scenarios, repeat finding escalation, and Significant Deficiency aggregation tests.</p>
+        <div class="resource-list">
+          <div class="resource-item">
+            <div class="res-info"><h4>KABO-TRN-SIM-001 — Module 1</h4><p>Complete Finding Calibration Bank · All 50 scenarios · PDF/DOCX</p></div>
+            <a href="https://f005.backblazeb2.com/file/kabo-training-docs/sim-docs/KABO-TRN-SIM-001-Module1-Finding-Calibration-Bank.docx" class="res-btn" target="_blank">Download</a>
+          </div>
+          <div class="resource-item">
+            <div class="res-info"><h4>Six Critical Scenarios</h4><p>FCB-003 Repeat High · FCB-023 Not a Finding · FCB-050 Significant Deficiency · Start Here</p></div>
+            <a href="https://f005.backblazeb2.com/file/kabo-training-docs/sim-docs/KABO-TRN-SIM-001-Module1-Critical-Six.docx" class="res-btn amber" target="_blank">Priority Read</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 2 -->
+    <div class="module-card">
+      <div class="module-header" onclick="toggleModule('m2')">
+        <div class="mod-num" style="background:var(--teal);">02</div>
+        <div class="mod-info">
+          <h3>Walkthrough Simulation Scripts</h3>
+          <p>Four complete character interaction scripts — practice every difficult client type before your first engagement</p>
+        </div>
+        <span class="mod-count">4 Characters</span>
+      </div>
+      <div class="module-body" id="m2">
+        <p class="mod-desc">Each script includes a character background card, instructor tone notes, pre-simulation trainee briefing, full dialogue with embedded coaching notes, and a debrief checklist. Run each simulation at least twice. The first time you encounter an aggressive IT Director should not be in a live engagement.</p>
+        <div class="resource-list">
+          <div class="resource-item">
+            <div class="res-info"><h4>WS-01 — Amara Osei, GRC Administrator</h4><p>Cooperative but not forthcoming · Domains A & C · Confirms FF log forwarding gap when directly asked</p></div>
+            <a href="https://f005.backblazeb2.com/file/kabo-training-docs/sim-docs/WS-01-Amara-Osei-GRC-Admin.docx" class="res-btn" target="_blank">Download</a>
+          </div>
+          <div class="resource-item">
+            <div class="res-info"><h4>WS-02 — Karl Becker, BASIS Team Lead</h4><p>Defensive contractor · Domains B & E · Challenges every finding with SAP documentation</p></div>
+            <a href="https://f005.backblazeb2.com/file/kabo-training-docs/sim-docs/WS-02-Karl-Becker-BASIS-Lead.docx" class="res-btn" target="_blank">Download</a>
+          </div>
+          <div class="resource-item">
+            <div class="res-info"><h4>WS-03 — Sandra Reyes, Finance Controller</h4><p>Non-technical · Domain L · Describes process, not configuration · OB52 gap discovery</p></div>
+            <a href="https://f005.backblazeb2.com/file/kabo-training-docs/sim-docs/WS-03-Sandra-Reyes-Finance-Controller.docx" class="res-btn" target="_blank">Download</a>
+          </div>
+          <div class="resource-item">
+            <div class="res-info"><h4>WS-04 — Marcus Holt, IT Director</h4><p>Aggressive · Challenges High findings · Attempts to bypass auditor · Repeat High escalation</p></div>
+            <a href="https://f005.backblazeb2.com/file/kabo-training-docs/sim-docs/WS-04-Marcus-Holt-IT-Director.docx" class="res-btn amber" target="_blank">Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODULE 3 -->
+    <div class="module-card">
+      <div class="module-header" onclick="toggleModule('m3')">
+        <div class="mod-num" style="background:var(--amber);">03</div>
+        <div class="mod-info">
+          <h3>Ironbridge Capital Group plc — Full Case Study</h3>
+          <p>Complete 30-day engagement simulation — execute all 17 deliverables before your first live client</p>
+        </div>
+        <span class="mod-count">15 Findings</span>
+      </div>
+      <div class="module-body" id="m3">
+        <p class="mod-desc">Ironbridge Capital Group plc — £28bn London asset manager. S/4HANA 2021. Prior year management letter with 3 High findings (2 not remediated). 15 pre-planted findings across 11 domains. Four client character types. Trainees are NOT told the findings in advance — they must be discovered through correct testing. Four findings are only discoverable through specific follow-up actions.</p>
+        <div class="resource-list">
+          <div class="resource-item">
+            <div class="res-info"><h4>Engagement Pack — Company Background & SAP Landscape</h4><p>Client brief · Prior year management letter · System landscape · Client contacts register</p></div>
+            <a href="https://f005.backblazeb2.com/file/kabo-training-docs/sim-docs/Ironbridge-M3-Engagement-Pack.docx" class="res-btn" target="_blank">Download</a>
+          </div>
+          <div class="resource-item">
+            <div class="res-info"><h4>PBC Evidence Pack (Instructor Copy)</h4><p>P1 and P2 evidence submissions · Adequacy gaps included · 2 unsubmitted items to discover</p></div>
+            <a href="https://f005.backblazeb2.com/file/kabo-training-docs/sim-docs/Ironbridge-M3-PBC-Evidence-Pack.docx" class="res-btn" target="_blank">Download</a>
+          </div>
+          <div class="resource-item">
+            <div class="res-info"><h4>Pre-Planted Findings Register (Instructor Only)</h4><p>All 15 findings · Discovery method · Escalation requirement · Do not share with trainees</p></div>
+            <a href="https://f005.backblazeb2.com/file/kabo-training-docs/sim-docs/Ironbridge-M3-Findings-Register-INSTRUCTOR.docx" class="res-btn amber" target="_blank">Instructor Only</a>
+          </div>
+          <div class="resource-item">
+            <div class="res-info"><h4>Management Response Assessment Pack</h4><p>One adequate · One inadequate (factually incorrect) · Trainee assessment exercise</p></div>
+            <a href="https://f005.backblazeb2.com/file/kabo-training-docs/sim-docs/Ironbridge-M3-Management-Response-Pack.docx" class="res-btn" target="_blank">Download</a>
+          </div>
+          <div class="resource-item">
+            <div class="res-info"><h4>Deliverables Checklist — 17 Items</h4><p>Every required output · Standard for each · Completion sign-off form</p></div>
+            <a href="https://f005.backblazeb2.com/file/kabo-training-docs/sim-docs/Ironbridge-M3-Deliverables-Checklist.docx" class="res-btn" target="_blank">Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLAYBOOKS REFERENCE -->
+    <div class="module-card">
+      <div class="module-header" onclick="toggleModule('m4')">
+        <div class="mod-num" style="background:var(--green);">📋</div>
+        <div class="mod-info">
+          <h3>30-Day Playbooks — Reference Downloads</h3>
+          <p>Both playbooks available as reference during the simulation</p>
+        </div>
+        <span class="mod-count">2 Playbooks</span>
+      </div>
+      <div class="module-body" id="m4">
+        <div class="resource-list">
+          <div class="resource-item">
+            <div class="res-info"><h4>Controls Lead 30-Day Playbook</h4><p>Days 1–30 · Morning/Afternoon/EOD blocks · Email templates · Finding scenarios</p></div>
+            <a href="https://f005.backblazeb2.com/file/kabo-training-docs/resources/KABO-AUD-CTL-001-30Day-Playbook-CL-Days1to30.docx" class="res-btn" target="_blank">Download</a>
+          </div>
+          <div class="resource-item">
+            <div class="res-info"><h4>Senior Controls Consultant 30-Day Playbook</h4><p>Days 1–30 · Transaction step-by-step · CL/SCC sync templates · Internal escalations</p></div>
+            <a href="https://f005.backblazeb2.com/file/kabo-training-docs/resources/KABO-AUD-CTL-001-SCC-30Day-Playbook-Days1to30.docx" class="res-btn" target="_blank">Download</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <footer>KABO Training Division · Panama City Beach, Florida · kabo-solutions.com · Confidential</footer>
+</div>
+
+<script>
+// ── Supabase config ──────────────────────────────────────────────────
+const SUPABASE_URL  = 'https://blfgwysgekfqhcafofhe.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_ThLetpd4hj49fjce-kXoFA_v4ghwIqV';
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const _courseName = 'sim';
+
+let currentUser = null;
+
+async function doLogin() {
+  const email = document.getElementById('email-in').value.trim().toLowerCase();
+  const pass  = document.getElementById('pass-in').value;
+  const errEl = document.getElementById('login-err');
+  const btn   = document.querySelector('.login-btn');
+  btn.textContent='Signing in…'; btn.disabled=true;
+
+  const { data: authData, error } = await _supabase.auth.signInWithPassword({ email, password: pass });
+  if(error || !authData.user) {
+    errEl.textContent='Invalid email or password.'; errEl.style.display='block';
+    btn.textContent='Access Simulation Toolkit'; btn.disabled=false; return;
+  }
+  const { data: enrData } = await _supabase.from('enrollments')
+    .select('course,expiry_date,is_active').eq('user_id',authData.user.id)
+    .eq('is_active',true).eq('course','sim').maybeSingle();
+  if(!enrData) {
+    errEl.textContent='No active Simulation enrolment. Contact support@kabo-solutions.com';
+    errEl.style.display='block'; await _supabase.auth.signOut();
+    btn.textContent='Access Simulation Toolkit'; btn.disabled=false; return;
+  }
+  const { data: prof } = await _supabase.from('user_profiles')
+    .select('full_name,avatar').eq('user_id',authData.user.id).maybeSingle();
+  const name = prof?.full_name || email.split('@')[0];
+  currentUser = { id:authData.user.id, email, name,
+    avatar: prof?.avatar||name.slice(0,2).toUpperCase() };
+  document.getElementById('user-name').textContent = name;
+  document.getElementById('user-avatar').textContent = currentUser.avatar;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('topbar').style.display='flex';
+  document.getElementById('main').style.display='block';
+}
+document.getElementById('pass-in').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+
+async function doLogout() {
+  await _supabase.auth.signOut();
+  currentUser=null;
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('topbar').style.display='none';
+  document.getElementById('main').style.display='none';
+  document.getElementById('email-in').value='';
+  document.getElementById('pass-in').value='';
+  document.querySelector('.login-btn').textContent='Access Simulation Toolkit';
+  document.querySelector('.login-btn').disabled=false;
+}
+
+window.addEventListener('load', async()=>{
+  const { data:{session} } = await _supabase.auth.getSession();
+  if(!session) return;
+  const { data:enrData } = await _supabase.from('enrollments')
+    .select('course,is_active').eq('user_id',session.user.id)
+    .eq('is_active',true).eq('course','sim').maybeSingle();
+  if(!enrData) return;
+  const { data:prof } = await _supabase.from('user_profiles')
+    .select('full_name,avatar').eq('user_id',session.user.id).maybeSingle();
+  const name=prof?.full_name||session.user.email.split('@')[0];
+  currentUser={id:session.user.id,email:session.user.email,
+    name,avatar:prof?.avatar||name.slice(0,2).toUpperCase()};
+  document.getElementById('user-name').textContent=name;
+  document.getElementById('user-avatar').textContent=currentUser.avatar;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('topbar').style.display='flex';
+  document.getElementById('main').style.display='block';
+});
+
+function toggleModule(id) {
+  const body = document.getElementById(id);
+  body.classList.toggle('open');
+}
+</script>
+
+<script>
+// ── IP PROTECTION ──────────────────────────────────────────────────────
+document.addEventListener('contextmenu', function(e){ e.preventDefault(); });
+document.addEventListener('keydown', function(e){
+  const blocked = (
+    (e.ctrlKey && ['u','s','p'].includes(e.key.toLowerCase())) ||
+    (e.metaKey && ['u','s','p'].includes(e.key.toLowerCase())) ||
+    e.key === 'F12' ||
+    (e.ctrlKey && e.shiftKey && ['i','j','c'].includes(e.key.toLowerCase()))
+  );
+  if(blocked) e.preventDefault();
+});
+
+function buildWatermark(email) {
+  const overlay = document.getElementById('wm-overlay');
+  if(!overlay) return;
+  overlay.innerHTML = '';
+  const text = 'KABO SOLUTIONS  ·  ' + email + '  ·  CONFIDENTIAL';
+  const tileW = 420, tileH = 120;
+  const cols = Math.ceil(window.innerWidth / tileW) + 2;
+  const rows = Math.ceil(window.innerHeight / tileH) + 4;
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+    const el = document.createElement('div');
+    el.className = 'wm-tile';
+    el.textContent = text;
+    el.style.left = (c*tileW-60)+'px';
+    el.style.top  = (r*tileH-40)+'px';
+    overlay.appendChild(el);
+  }
+}
+
+const _wmObserver = setInterval(()=>{
+  if(typeof currentUser!=='undefined' && currentUser && currentUser.email){
+    buildWatermark(currentUser.email);
+    clearInterval(_wmObserver);
+  }
+},500);
+
+window.addEventListener('resize',()=>{
+  if(typeof currentUser!=='undefined' && currentUser && currentUser.email)
+    buildWatermark(currentUser.email);
+});
+</script>
+
+
+<script>
+// ── AUTH TAB SWITCHER ──────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => {
+    t.classList.toggle('active', (i===0 && tab==='login') || (i===1 && tab==='register'));
+  });
+  document.getElementById('panel-login').classList.toggle('active', tab==='login');
+  document.getElementById('panel-register').classList.toggle('active', tab==='register');
+  // Clear errors on switch
+  document.getElementById('login-err').style.display = 'none';
+  document.getElementById('reg-err').style.display   = 'none';
+}
+
+// ── PASSWORD STRENGTH INDICATOR ────────────────────────────────────────
+function checkPwStrength(val) {
+  const bar = document.getElementById('pw-bar');
+  if(!bar) return;
+  const strength = [val.length >= 8, /[A-Z]/.test(val), /[0-9]/.test(val), /[^A-Za-z0-9]/.test(val)]
+    .filter(Boolean).length;
+  const colors = ['','#E53935','#FB8C00','#43A047','#1B7A3F'];
+  const widths = ['0%','25%','50%','75%','100%'];
+  bar.style.width = widths[strength];
+  bar.style.background = colors[strength];
+}
+
+// ── REGISTER FUNCTION ──────────────────────────────────────────────────
+async function doRegister() {
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('reg-pass').value;
+  const pass2 = document.getElementById('reg-pass2').value;
+  const btn   = document.getElementById('reg-btn');
+  const errEl = document.getElementById('reg-err');
+
+  // Validation
+  errEl.style.display = 'none';
+  if(!email || !email.includes('@')) {
+    errEl.textContent = 'Please enter a valid email address.';
+    errEl.style.display = 'block'; return;
+  }
+  if(pass.length < 8) {
+    errEl.textContent = 'Password must be at least 8 characters.';
+    errEl.style.display = 'block'; return;
+  }
+  if(pass !== pass2) {
+    errEl.textContent = 'Passwords do not match. Please try again.';
+    errEl.style.display = 'block'; return;
+  }
+
+  btn.textContent = 'Creating account…'; btn.disabled = true;
+
+  try {
+    const { data, error } = await _supabase.auth.signUp({ email, password: pass });
+    if(error) throw error;
+
+    // Show success panel
+    document.getElementById('reg-form').style.display    = 'none';
+    document.getElementById('reg-success').style.display = 'block';
+
+  } catch(err) {
+    let msg = 'Registration failed. Please try again.';
+    if(err.message && err.message.toLowerCase().includes('already registered'))
+      msg = 'This email is already registered. Use the Sign In tab to log in.';
+    else if(err.message && err.message.toLowerCase().includes('password'))
+      msg = 'Password does not meet requirements. Use at least 8 characters.';
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+    btn.textContent = 'Create Account'; btn.disabled = false;
+  }
+}
+</script>
+
+
+<script>
+// ── AUTH TAB SWITCHER ──────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach((t,i) => {
+    t.classList.toggle('active', (i===0 && tab==='login') || (i===1 && tab==='register'));
+  });
+  document.getElementById('panel-login').classList.toggle('active', tab==='login');
+  document.getElementById('panel-register').classList.toggle('active', tab==='register');
+  document.getElementById('login-err').style.display = 'none';
+  document.getElementById('reg-err').style.display   = 'none';
+}
+
+function checkPwStrength(val) {
+  const bar = document.getElementById('pw-bar');
+  if(!bar) return;
+  const strength = [val.length>=8,/[A-Z]/.test(val),/[0-9]/.test(val),/[^A-Za-z0-9]/.test(val)].filter(Boolean).length;
+  const colors = ['','#E53935','#FB8C00','#43A047','#1B7A3F'];
+  const widths = ['0%','25%','50%','75%','100%'];
+  bar.style.width = widths[strength];
+  bar.style.background = colors[strength];
+}
+
+async function doRegister() {
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('reg-pass').value;
+  const pass2 = document.getElementById('reg-pass2').value;
+  const btn   = document.getElementById('reg-btn');
+  const errEl = document.getElementById('reg-err');
+
+  errEl.style.display = 'none';
+  if(!email || !email.includes('@')) {
+    errEl.textContent = 'Please enter a valid email address.';
+    errEl.style.display = 'block'; return;
+  }
+  if(pass.length < 8) {
+    errEl.textContent = 'Password must be at least 8 characters.';
+    errEl.style.display = 'block'; return;
+  }
+  if(pass !== pass2) {
+    errEl.textContent = 'Passwords do not match. Please try again.';
+    errEl.style.display = 'block'; return;
+  }
+
+  btn.textContent = 'Creating account…'; btn.disabled = true;
+
+  try {
+    const { data, error } = await _supabase.auth.signUp({ email, password: pass });
+    if(error) throw error;
+    document.getElementById('reg-form').style.display    = 'none';
+    document.getElementById('reg-success').style.display = 'block';
+  } catch(err) {
+    let msg = 'Registration failed. Please try again.';
+    if(err.message && err.message.toLowerCase().includes('already registered'))
+      msg = 'This email is already registered. Use the Sign In tab.';
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+    btn.textContent = 'Create Account'; btn.disabled = false;
+  }
+}
+</script>
+
+</body>
+</html>
